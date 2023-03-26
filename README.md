@@ -1,4 +1,4 @@
-# mysecondapp
+# Shopping list
 
 A new Flutter project.
 
