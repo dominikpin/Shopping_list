@@ -16,6 +16,7 @@ class _ShoppingList extends State<ShoppingList> {
   late int editingIndex;
   late TextEditingController textController = TextEditingController();
   late Function saveShopList;
+  late double progress = 0;
 
   @override
   void didChangeDependencies() {
@@ -24,12 +25,19 @@ class _ShoppingList extends State<ShoppingList> {
     store = args['store'] as Store;
     saveShopList = args['saveShopList'] as Function;
     itemList = store.itemList;
+    checkIfAllTrue();
   }
 
   sortListAlphabetically() async {
-    itemList
-        .sort((a, b) => a.text.toLowerCase().compareTo(b.text.toLowerCase()));
-    return;
+    itemList.sort((a, b) {
+      if (a.isChecked == b.isChecked) {
+        return a.text.toLowerCase().compareTo(b.text.toLowerCase());
+      } else if (a.isChecked) {
+        return 1;
+      } else {
+        return -1;
+      }
+    });
   }
 
   sortListSlovenian() async {
@@ -37,18 +45,24 @@ class _ShoppingList extends State<ShoppingList> {
         'a,b,c,č,d,e,f,g,h,i,j,k,l,m,n,o,p,r,s,š,t,u,v,z,ž';
     final List<String> slovenianOrder = slovenianAlphabet.split(',');
     itemList.sort((a, b) {
-      int minLen =
-          a.text.length < b.text.length ? a.text.length : b.text.length;
-      for (int i = 0; i < minLen; i++) {
-        String aChar = a.text[i].toLowerCase();
-        String bChar = b.text[i].toLowerCase();
-        int aIndex = slovenianOrder.indexOf(aChar);
-        int bIndex = slovenianOrder.indexOf(bChar);
-        if (aIndex != bIndex) {
-          return aIndex - bIndex;
+      if (a.isChecked == b.isChecked) {
+        int minLen =
+            a.text.length < b.text.length ? a.text.length : b.text.length;
+        for (int i = 0; i < minLen; i++) {
+          String aChar = a.text[i].toLowerCase();
+          String bChar = b.text[i].toLowerCase();
+          int aIndex = slovenianOrder.indexOf(aChar);
+          int bIndex = slovenianOrder.indexOf(bChar);
+          if (aIndex != bIndex) {
+            return aIndex - bIndex;
+          }
         }
+        return a.text.length - b.text.length;
+      } else if (a.isChecked) {
+        return 1;
+      } else {
+        return -1;
       }
-      return a.text.length - b.text.length;
     });
   }
 
@@ -81,24 +95,16 @@ class _ShoppingList extends State<ShoppingList> {
 
   checkIfAllTrue() {
     if (itemList.isEmpty) {
+      progress = 0;
       return;
     }
+    int counter = 0;
     for (ListItem item in itemList) {
-      if (!item.isChecked) {
-        return;
+      if (item.isChecked) {
+        counter++;
       }
     }
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return Dialog(
-          child: Container(
-            padding: const EdgeInsets.all(10),
-            child: const Text('Shopping completed!'),
-          ),
-        );
-      },
-    );
+    progress = counter / itemList.length;
   }
 
   editItemFromList(ListItem item, int itemIndex) async {
@@ -197,23 +203,80 @@ class _ShoppingList extends State<ShoppingList> {
         centerTitle: true,
         backgroundColor: Colors.blue[800],
       ),
-      body: ListView(
+      body: Stack(
         children: [
-          Column(
+          ListView(
             children: [
+              const SizedBox(height: 36),
               Column(
-                  children: itemList
-                      .map((item) => ListItemWidget(
-                            item: item,
-                            textController: textController,
-                            removeFunction: () => removeItemFromList(item),
-                            editItemFunction: () =>
-                                editItemFromList(item, itemList.indexOf(item)),
-                          ))
-                      .toList()),
+                children: [
+                  Column(
+                    children: itemList
+                        .map((item) => ListItemWidget(
+                              item: item,
+                              textController: textController,
+                              removeFunction: () => removeItemFromList(item),
+                              editItemFunction: () => editItemFromList(
+                                  item, itemList.indexOf(item)),
+                            ))
+                        .toList(),
+                  ),
+                  const SizedBox(height: 150),
+                ],
+              ),
             ],
           ),
-          const SizedBox(height: 150),
+          Visibility(
+            visible: itemList.isNotEmpty,
+            child: Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.grey[800],
+                  border: const Border(
+                    bottom: BorderSide(
+                      color: Colors.grey,
+                    ),
+                  ),
+                ),
+                child: SizedBox(
+                  height: 20,
+                  child: Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(20),
+                        child: LinearProgressIndicator(
+                          value: progress,
+                          backgroundColor: Colors.grey[700],
+                          valueColor: const AlwaysStoppedAnimation<Color>(
+                            Colors.green,
+                          ),
+                          minHeight: 20,
+                        ),
+                      ),
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        top: 0,
+                        child: Text(
+                          '${(progress * 100).toInt()}%',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
       floatingActionButton: Stack(

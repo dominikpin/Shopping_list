@@ -122,10 +122,9 @@ class _Stores extends State<Stores> {
   printStoreList() {
     for (var store in storeList) {
       {
-        if (kDebugMode) {
-          print(
-              'Store name: ${store.name}, Store IMGpath: ${store.imageLocation} Store items: ${store.itemList.map((item) => item.text).join(', ')}');
-        }
+        // ignore: avoid_print
+        print(
+            'Store name: ${store.name}, Store IMGpath: ${store.imageLocation} Store items: ${store.itemList.map((item) => item.text).join(', ')}');
       }
     }
   }
@@ -157,6 +156,7 @@ class _Stores extends State<Stores> {
       await imageFile.delete();
     }
     store.imageLocation = '';
+    await saveShopList();
     setState(() {});
   }
 
@@ -278,11 +278,14 @@ class _Stores extends State<Stores> {
         centerTitle: true,
         backgroundColor: Colors.blue[800],
         actions: [
-          IconButton(
-            onPressed: () {
-              printStoreList();
-            },
-            icon: const Icon(Icons.print),
+          Visibility(
+            visible: kDebugMode,
+            child: IconButton(
+              onPressed: () {
+                printStoreList();
+              },
+              icon: const Icon(Icons.print),
+            ),
           ),
         ],
       ),
@@ -290,6 +293,7 @@ class _Stores extends State<Stores> {
           itemCount: storeList.length,
           itemBuilder: (context, index) {
             return Card(
+              color: Colors.grey[350],
               child: ListTile(
                 onTap: () {
                   Navigator.pushNamed(
@@ -307,7 +311,7 @@ class _Stores extends State<Stores> {
                 title: Text(storeList[index].name),
                 leading: storeList[index].imageLocation.isNotEmpty
                     ? Container(
-                        margin: const EdgeInsets.all(10),
+                        margin: const EdgeInsets.all(3),
                         child: Image.file(File(storeList[index].imageLocation)))
                     : const Icon(Icons.shopping_cart_rounded),
               ),
